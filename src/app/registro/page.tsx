@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 
 export default function RegistroHumor() {
@@ -8,6 +8,14 @@ export default function RegistroHumor() {
   const [periodo, setPeriodo] = useState("Manhã");
   const [eventos, setEventos] = useState("");
   const [pensamentos, setPensamentos] = useState("");
+
+  // 1. Carregar o nome do LocalStorage ao abrir a página
+  useEffect(() => {
+    const nomeSalvo = localStorage.getItem("paciente_nome");
+    if (nomeSalvo) {
+      setNome(nomeSalvo);
+    }
+  }, []);
 
   // Lógica de Feedback Visual e Textual para o Paciente
   const getFeedbackHumor = (nivel: number) => {
@@ -30,9 +38,16 @@ export default function RegistroHumor() {
       return;
     }
 
+    // 2. Normalização: Transforma em minúsculas e remove espaços extras
+    // Isso garante que "Andreza" e "andreza" sejam a mesma pessoa no banco
+    const nomeNormalizado = nome.trim().toLowerCase();
+
+    // 3. Salva o nome no navegador para facilitar o próximo envio do paciente
+    localStorage.setItem("paciente_nome", nome.trim());
+
     const { error } = await supabase.from("registros_humor").insert([
       {
-        paciente_nome: nome,
+        paciente_nome: nomeNormalizado, // Enviamos a versão padronizada
         nivel_humor: humor,
         turno: periodo,
         eventos_relevantes: eventos,
@@ -44,7 +59,7 @@ export default function RegistroHumor() {
       alert("Erro ao salvar o registro.");
     } else {
       alert("Sucesso! O Pedro já recebeu seu registro.");
-      // Limpa os campos após o envio, exceto o nome para facilitar o próximo envio
+      // Limpa os campos de texto, mas mantém o nome e humor para conveniência
       setEventos("");
       setPensamentos("");
     }
@@ -75,9 +90,12 @@ export default function RegistroHumor() {
             value={nome}
             onChange={(e) => setNome(e.target.value)}
           />
+          <p className="text-center text-xs text-gray-400 mt-3 italic">
+            Seu nome ficará salvo neste dispositivo para os próximos registros.
+          </p>
         </section>
 
-        {/* Nível de Energia (Substitui o "Alteração Detectada" por algo mais humano) */}
+        {/* Nível de Energia */}
         <section className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-50 text-center">
           <h2 className="font-bold text-gray-800 text-xl mb-8 flex items-center justify-center gap-2">
             <span>🔋</span> Nível de Energia
@@ -135,7 +153,7 @@ export default function RegistroHumor() {
           </div>
         </section>
 
-        {/* Seção Clínica (Cópia fiel do modelo de papel) */}
+        {/* Seção Clínica */}
         <section className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-50 space-y-8">
           <div>
             <label className="block font-bold mb-4 text-gray-800 text-xl text-center">
